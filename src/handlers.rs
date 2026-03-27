@@ -1,40 +1,35 @@
 use crate::QUESTIONS;
 use anyhow::Result;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use serde::Deserialize;
-use std::sync::{Arc, LazyLock};
-use tokio::sync::RwLock;
+use tokio::fs;
 use uuid::Uuid;
 
-pub(crate) type SessionUuid = Arc<RwLock<Option<String>>>;
-static UUID_STATE: LazyLock<SessionUuid> = LazyLock::new(|| Arc::new(RwLock::new(None)));
-
 pub(crate) async fn can_start() -> Result<String, StatusCode> {
-    let state = &*UUID_STATE.read().await;
+    let uuid = fs::read_to_string("session.txt").await.unwrap();
 
-    if state.is_some() {
-        return Ok(false.to_string());
+    if uuid.is_empty() {
+        return Ok(true.to_string());
     }
 
-    Ok(true.to_string())
+    Ok(false.to_string())
 }
 
 pub(crate) async fn start() -> Result<String, StatusCode> {
-    let state = UUID_STATE.read().await;
+    let uuid = fs::read_to_string("session.txt").await.unwrap();
 
-    if state.is_some() {
+    if !uuid.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    drop(state);
 
     let uuid = Uuid::new_v4().to_string();
-    *UUID_STATE.write().await = Some(uuid.clone());
+    fs::write("session.txt", uuid.as_bytes()).await.unwrap();
     Ok(uuid)
 }
 
 pub(crate) async fn reset_session() -> Result<StatusCode, StatusCode> {
-    *UUID_STATE.write().await = None;
+    fs::write("session.txt", b"").await.unwrap();
     Ok(StatusCode::OK)
 }
 
@@ -44,7 +39,16 @@ pub(crate) struct CheckAnswer {
     answer: String,
 }
 
-pub(crate) async fn check_answer(Json(body): Json<CheckAnswer>) -> Result<String, StatusCode> {
+pub(crate) async fn check_answer(headers: HeaderMap, Json(body): Json<CheckAnswer>) -> Result<String, StatusCode> {
+    let key = headers.get("Key").ok_or(StatusCode::UNAUTHORIZED)?.to_str().map_err(|_| StatusCode::UNAUTHORIZED)?.to_string();
+    let key = Uuid::parse_str(&key).map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    let uuid = fs::read_to_string("session.txt").await.unwrap();
+    let uuid = Uuid::parse_str(&uuid).unwrap();
+    if key != uuid {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
     let question = QUESTIONS
         .get()
         .unwrap()

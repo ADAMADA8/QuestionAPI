@@ -33,10 +33,8 @@ async fn main() -> Result<()> {
     let content = fs::read_to_string("questions.yml").await.with_context(|| "Ошибка чтения questions.yml")?;
     let parsed: Vec<QA> = serde_saphyr::from_str(content.as_str()).with_context(|| "questions.yml неверно оформлен")?;
 
+    println!("Было обнаружено {} вопросов", parsed.len());
     QUESTIONS.set(parsed).unwrap();
-    for qa in QUESTIONS.get().unwrap() {
-        println!("{} {}", qa.question, qa.answer);
-    }
 
     println!("Веб сервер запущен на {}", address);
     axum::serve(listener, app).await?;
