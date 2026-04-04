@@ -2,12 +2,12 @@ mod config;
 mod handlers;
 mod routes;
 mod services;
+mod storage;
 
 use crate::config::CONFIG;
 use crate::services::app_router;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
 use std::sync::OnceLock;
 use tokio::fs;
 
@@ -19,10 +19,6 @@ pub struct QA {
 static QUESTIONS: OnceLock<Vec<QA>> = OnceLock::new();
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-    println!("{:#?}", CONFIG.deref());
-
-    let app = app_router();
-
     let address = format!("{}:{}", CONFIG.host, CONFIG.port);
     let listener = tokio::net::TcpListener::bind(&address).await?;
 
@@ -36,6 +32,7 @@ async fn main() -> Result<()> {
     println!("Было обнаружено {} вопросов", parsed.len());
     QUESTIONS.set(parsed).unwrap();
 
+    let app = app_router();
     println!("Веб сервер запущен на {}", address);
     axum::serve(listener, app).await?;
     Ok(())

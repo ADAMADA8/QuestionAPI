@@ -1,8 +1,7 @@
+use crate::storage::CURRENT_QUESTION;
 use crate::QUESTIONS;
 use anyhow::Result;
 use axum::http::{HeaderMap, StatusCode};
-use axum::Json;
-use serde::Deserialize;
 use tokio::fs;
 use uuid::Uuid;
 
@@ -23,26 +22,13 @@ pub(crate) async fn start() -> Result<String, StatusCode> {
         return Err(StatusCode::BAD_REQUEST);
     }
 
+    *CURRENT_QUESTION.lock().await = 0;
     let uuid = Uuid::new_v4().to_string();
     fs::write("session.txt", uuid.as_bytes()).await.unwrap();
     Ok(uuid)
 }
 
-pub(crate) async fn reset_session() -> Result<StatusCode, StatusCode> {
-    fs::write("session.txt", b"").await.unwrap();
-    Ok(StatusCode::OK)
-}
-
-#[derive(Deserialize)]
-pub(crate) struct CheckAnswer {
-    id: usize,
-    answer: String,
-}
-
-pub(crate) async fn check_answer(
-    headers: HeaderMap,
-    Json(body): Json<CheckAnswer>,
-) -> Result<String, StatusCode> {
+pub(crate) async fn check_answer(headers: HeaderMap, body: String) -> Result<&'static str, StatusCode> {
     let key = headers
         .get("Key")
         .ok_or(StatusCode::UNAUTHORIZED)?
@@ -57,15 +43,17 @@ pub(crate) async fn check_answer(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
+    let current = *CURRENT_QUESTION.lock().await;
     let question = QUESTIONS
         .get()
         .unwrap()
-        .get(body.id)
+        .get(current as usize)
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    if question.answer != body.answer {
-        return Ok(false.to_string());
+    if question.answer != body {
+        return Ok("false");
     }
 
-    Ok(true.to_string())
+    *CURRENT_QUESTION.lock().await += 1;
+    Ok(&question.question)
 }

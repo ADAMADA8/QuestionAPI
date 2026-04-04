@@ -23,6 +23,8 @@ async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, Statu
 
 pub(crate) fn admin_router() -> Router {
     Router::new()
-        .route("/get_questions", get(get_questions))
+        .route("/reset_session", get(reset_session))
+        .route("/questions", get(questions))
+        .route("/current_question", get(current_question))
         .layer(middleware::from_fn(require_admin))
 }
