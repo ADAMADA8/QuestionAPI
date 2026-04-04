@@ -1,0 +1,17 @@
+use anyhow::Context;
+use serde::Deserialize;
+use std::sync::LazyLock;
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Config {
+    pub(crate) host: String,
+    pub(crate) port: String,
+}
+
+
+pub(crate) static CONFIG: LazyLock<Config> = LazyLock::new(|| {
+    let content = std::fs::read_to_string("config.yml")
+        .with_context(|| "Не удалось прочитать config.yml").unwrap();
+    serde_saphyr::from_str(&content)
+        .with_context(|| "config.yml неверно оформлен").unwrap()
+});

@@ -1,17 +1,14 @@
 mod handlers;
 mod services;
+mod config;
 
+use crate::config::CONFIG;
 use crate::services::app_router;
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::ops::Deref;
 use std::sync::OnceLock;
 use tokio::fs;
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    host: String,
-    port: String,
-}
 
 #[derive(Debug, Deserialize)]
 pub struct QA {
@@ -21,13 +18,11 @@ pub struct QA {
 static QUESTIONS: OnceLock<Vec<QA>> = OnceLock::new();
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-    let content = fs::read_to_string("config.yml").await.with_context(|| "Ошибка чтения config.yml")?;
-    let config: Config = serde_saphyr::from_str(content.as_str()).with_context(|| "config.yml неверно оформлен")?;
-    println!("{:#?}", config);
+    println!("{:#?}", CONFIG.deref());
 
     let app = app_router();
 
-    let address = format!("{}:{}", config.host, config.port);
+    let address = format!("{}:{}", CONFIG.host, CONFIG.port);
     let listener = tokio::net::TcpListener::bind(&address).await?;
 
     let content = fs::read_to_string("questions.yml").await.with_context(|| "Ошибка чтения questions.yml")?;
