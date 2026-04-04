@@ -6,12 +6,12 @@ mod services;
 use crate::config::CONFIG;
 use crate::services::app_router;
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::sync::OnceLock;
 use tokio::fs;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct QA {
     pub question: String,
     pub answer: String,

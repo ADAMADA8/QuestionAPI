@@ -1,4 +1,4 @@
-use crate::handlers::user::{can_start, check_answer, reset_session, start};
+use crate::handlers::user::*;
 use axum::routing::{get, post};
 use axum::Router;
 

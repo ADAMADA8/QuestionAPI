@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 pub(crate) struct Config {
     pub(crate) host: String,
     pub(crate) port: String,
+    pub(crate) admin_token: String,
 }
 
 pub(crate) static CONFIG: LazyLock<Config> = LazyLock::new(|| {
