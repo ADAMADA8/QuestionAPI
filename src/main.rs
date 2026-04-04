@@ -1,6 +1,7 @@
-mod handlers;
-mod services;
 mod config;
+mod handlers;
+mod routes;
+mod services;
 
 use crate::config::CONFIG;
 use crate::services::app_router;
@@ -25,8 +26,12 @@ async fn main() -> Result<()> {
     let address = format!("{}:{}", CONFIG.host, CONFIG.port);
     let listener = tokio::net::TcpListener::bind(&address).await?;
 
-    let content = fs::read_to_string("questions.yml").await.with_context(|| "Ошибка чтения questions.yml")?;
-    let parsed: Vec<QA> = serde_saphyr::from_str(content.as_str()).with_context(|| "questions.yml неверно оформлен")?;
+    let content = fs::read_to_string("questions.yml")
+        .await
+        .with_context(|| "Ошибка чтения questions.yml")?;
+
+    let parsed: Vec<QA> = serde_saphyr::from_str(content.as_str())
+        .with_context(|| "questions.yml неверно оформлен")?;
 
     println!("Было обнаружено {} вопросов", parsed.len());
     QUESTIONS.set(parsed).unwrap();

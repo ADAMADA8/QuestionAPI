@@ -39,8 +39,16 @@ pub(crate) struct CheckAnswer {
     answer: String,
 }
 
-pub(crate) async fn check_answer(headers: HeaderMap, Json(body): Json<CheckAnswer>) -> Result<String, StatusCode> {
-    let key = headers.get("Key").ok_or(StatusCode::UNAUTHORIZED)?.to_str().map_err(|_| StatusCode::UNAUTHORIZED)?.to_string();
+pub(crate) async fn check_answer(
+    headers: HeaderMap,
+    Json(body): Json<CheckAnswer>,
+) -> Result<String, StatusCode> {
+    let key = headers
+        .get("Key")
+        .ok_or(StatusCode::UNAUTHORIZED)?
+        .to_str()
+        .map_err(|_| StatusCode::UNAUTHORIZED)?
+        .to_string();
     let key = Uuid::parse_str(&key).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let uuid = fs::read_to_string("session.txt").await.unwrap();
