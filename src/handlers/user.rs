@@ -28,7 +28,10 @@ pub(crate) async fn start() -> Result<String, StatusCode> {
     Ok(uuid)
 }
 
-pub(crate) async fn check_answer(headers: HeaderMap, body: String) -> Result<&'static str, StatusCode> {
+pub(crate) async fn check_answer(
+    headers: HeaderMap,
+    body: String,
+) -> Result<&'static str, StatusCode> {
     let key = headers
         .get("Key")
         .ok_or(StatusCode::UNAUTHORIZED)?
@@ -43,17 +46,18 @@ pub(crate) async fn check_answer(headers: HeaderMap, body: String) -> Result<&'s
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    let current = *CURRENT_QUESTION.lock().await;
-    let question = QUESTIONS
-        .get()
-        .unwrap()
-        .get(current as usize)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    let current = *CURRENT_QUESTION.lock().await as usize;
+    let questions = QUESTIONS.get().unwrap();
+    let question = questions.get(current).ok_or(StatusCode::NOT_FOUND)?;
 
     if question.answer != body {
         return Ok("false");
     }
 
     *CURRENT_QUESTION.lock().await += 1;
-    Ok(&question.question)
+    if questions.len() == current + 1 {
+        return Ok("true");
+    }
+
+    Ok(&questions.get(current + 1).unwrap().question)
 }
