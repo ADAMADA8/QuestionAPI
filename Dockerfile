@@ -22,6 +22,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build /src/app/target/release/QuestionAPI /app/QuestionAPI
+RUN mkdir -p /app/data
 
 EXPOSE 8080
-CMD ["./QuestionAPI"]
+WORKDIR /app/data
+CMD ["/app/QuestionAPI"]
