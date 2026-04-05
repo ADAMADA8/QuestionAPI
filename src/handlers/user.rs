@@ -28,7 +28,7 @@ pub(crate) async fn start() -> Result<String, StatusCode> {
     Ok(uuid)
 }
 
-pub(crate) async fn check_answer(
+pub(crate) async fn send_answer(
     headers: HeaderMap,
     body: String,
 ) -> Result<&'static str, StatusCode> {

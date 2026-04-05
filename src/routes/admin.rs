@@ -5,7 +5,7 @@ use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{middleware, Router};
 
 async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
@@ -23,7 +23,7 @@ async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, Statu
 
 pub(crate) fn admin_router() -> Router {
     Router::new()
-        .route("/reset_session", get(reset_session))
+        .route("/reset_session", post(reset_session))
         .route("/questions", get(questions))
         .route("/current_question", get(current_question))
         .layer(middleware::from_fn(require_admin))

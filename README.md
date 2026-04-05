@@ -14,7 +14,7 @@ HTTP API на Rust для участия в GameJam.
 
 - `GET /api/can_start` - можно ли начать новую сессию (`true`/`false`).
 - `GET /api/start` - стартует сессию, возвращает UUID-ключ (используется дальше в заголовке `Key`).
-- `GET /api/check_answer` - проверяет ответ.
+- `POST /api/send_answer` - принимает ответ пользователя и возвращает результат.
   - Заголовок: `Key: <uuid>`
   - Тело запроса: строка с ответом
   - Ответы:
@@ -30,7 +30,7 @@ HTTP API на Rust для участия в GameJam.
 
 `Authorization: Bearer <admin_token>`
 
-- `GET /api/admin/reset_session` - сбрасывает сессию и текущий индекс вопроса.
+- `POST /api/admin/reset_session` - сбрасывает сессию и текущий индекс вопроса.
 - `GET /api/admin/questions` - возвращает полный список вопросов и ответов.
 - `GET /api/admin/current_question` - возвращает индекс текущего вопроса.
 
