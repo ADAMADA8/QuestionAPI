@@ -33,3 +33,4 @@ HTTP API на Rust для участия в GameJam.
 - `GET /api/admin/reset_session` - сбрасывает сессию и текущий индекс вопроса.
 - `GET /api/admin/questions` - возвращает полный список вопросов и ответов.
 - `GET /api/admin/current_question` - возвращает индекс текущего вопроса.
+

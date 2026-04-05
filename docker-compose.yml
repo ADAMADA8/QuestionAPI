@@ -1,0 +1,13 @@
+services:
+  question-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: question-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./questions.yml:/app/questions.yml:ro
+      - ./session.txt:/app/session.txt
