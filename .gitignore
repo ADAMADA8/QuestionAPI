@@ -2,5 +2,5 @@
 /questions.yml
 /.idea
 /config.yml
-/session.txt
 /data
+/state.json

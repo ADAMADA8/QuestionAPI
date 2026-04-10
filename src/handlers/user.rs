@@ -1,12 +1,12 @@
-use crate::storage::CURRENT_QUESTION;
+use crate::storage;
 use crate::QUESTIONS;
 use anyhow::Result;
 use axum::http::{HeaderMap, StatusCode};
-use tokio::fs;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub(crate) async fn can_start() -> Result<String, StatusCode> {
-    let uuid = fs::read_to_string("session.txt").await.unwrap();
+    let uuid = storage::read(|state| state.session_id.clone());
 
     if uuid.is_empty() {
         return Ok(true.to_string());
@@ -16,15 +16,19 @@ pub(crate) async fn can_start() -> Result<String, StatusCode> {
 }
 
 pub(crate) async fn start() -> Result<String, StatusCode> {
-    let uuid = fs::read_to_string("session.txt").await.unwrap();
+    let current = storage::read(|state| state.session_id.clone());
 
-    if !uuid.is_empty() {
+    if !current.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    *CURRENT_QUESTION.lock().await = 0;
     let uuid = Uuid::new_v4().to_string();
-    fs::write("session.txt", uuid.as_bytes()).await.unwrap();
+
+    storage::write(|state| {
+        state.session_id = Arc::from(uuid.as_str());
+        state.question_number = 0;
+    });
+
     Ok(uuid)
 }
 
@@ -40,13 +44,12 @@ pub(crate) async fn send_answer(
         .to_string();
     let key = Uuid::parse_str(&key).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    let uuid = fs::read_to_string("session.txt").await.unwrap();
+    let (uuid, current) = storage::read(|state| (state.session_id.clone(), state.question_number));
     let uuid = Uuid::parse_str(&uuid).unwrap();
     if key != uuid {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    let current = *CURRENT_QUESTION.lock().await as usize;
     let questions = QUESTIONS.get().unwrap();
     let question = questions.get(current).ok_or(StatusCode::NOT_FOUND)?;
 
@@ -54,7 +57,7 @@ pub(crate) async fn send_answer(
         return Ok("false");
     }
 
-    *CURRENT_QUESTION.lock().await += 1;
+    storage::write(|state| state.question_number = current + 1);
     if questions.len() == current + 1 {
         return Ok("true");
     }
