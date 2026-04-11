@@ -1,7 +1,7 @@
 use crate::storage;
 use crate::QUESTIONS;
 use anyhow::Result;
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::StatusCode;
 use axum::Json;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -33,23 +33,14 @@ pub(crate) async fn start() -> Result<Json<String>, StatusCode> {
     Ok(Json::from(uuid))
 }
 
-pub(crate) async fn send_answer(
-    headers: HeaderMap,
-    body: String,
-) -> Result<&'static str, StatusCode> {
-    let key = headers
-        .get("Key")
-        .ok_or(StatusCode::UNAUTHORIZED)?
-        .to_str()
-        .map_err(|_| StatusCode::UNAUTHORIZED)?
-        .to_string();
-    let key = Uuid::parse_str(&key).map_err(|_| StatusCode::UNAUTHORIZED)?;
+pub(crate) async fn current_question() -> Result<Json<&'static str>, StatusCode> {
+    let current = storage::read(|state| state.question_number);
+    let current = &*QUESTIONS.get().unwrap().get(current).unwrap().question;
+    Ok(Json::from(current))
+}
 
-    let (uuid, current) = storage::read(|state| (state.session_id.clone(), state.question_number));
-    let uuid = Uuid::parse_str(&uuid).unwrap();
-    if key != uuid {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+pub(crate) async fn send_answer(body: String) -> Result<&'static str, StatusCode> {
+    let current = storage::read(|state| state.question_number);
 
     let questions = QUESTIONS.get().unwrap();
     let question = questions.get(current).ok_or(StatusCode::NOT_FOUND)?;
