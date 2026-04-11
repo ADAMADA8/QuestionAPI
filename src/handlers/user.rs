@@ -50,9 +50,5 @@ pub(crate) async fn send_answer(body: String) -> Result<&'static str, StatusCode
     }
 
     storage::write(|state| state.question_number = current + 1);
-    if questions.len() == current + 1 {
-        return Ok("true");
-    }
-
-    Ok(&questions.get(current + 1).unwrap().question)
+    Ok("true")
 }
