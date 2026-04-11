@@ -1,0 +1,11 @@
+- name: "Камень"
+  description: "Это камень."
+  image: "rock.png"
+
+- name: "Дерево"
+  description: "Это дерево."
+  image: "wood.png"
+
+- name: "Железо"
+  description: "Это железо."
+  image: "iron.png"

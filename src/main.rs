@@ -6,31 +6,17 @@ mod storage;
 
 use crate::config::CONFIG;
 use crate::services::app_router;
-use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
-use tokio::fs;
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct QA {
-    pub question: String,
-    pub answer: String,
-}
-static QUESTIONS: OnceLock<Vec<QA>> = OnceLock::new();
+use anyhow::Result;
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     let address = format!("{}:{}", CONFIG.host, CONFIG.port);
     let listener = tokio::net::TcpListener::bind(&address).await?;
 
-    let content = fs::read_to_string("questions.yml")
-        .await
-        .with_context(|| "Ошибка чтения questions.yml")?;
+    let questions_count = storage::init_questions().await?;
+    println!("Обнаружено {} вопросов", questions_count);
 
-    let parsed: Vec<QA> = serde_saphyr::from_str(content.as_str())
-        .with_context(|| "questions.yml неверно оформлен")?;
-
-    println!("Было обнаружено {} вопросов", parsed.len());
-    QUESTIONS.set(parsed).unwrap();
+    let items_count = storage::init_items().await?;
+    println!("Обнаружено {} предметов", items_count);
 
     let app = app_router();
     println!("Веб сервер запущен на {}", address);

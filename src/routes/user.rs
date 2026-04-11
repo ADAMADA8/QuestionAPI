@@ -36,6 +36,7 @@ pub(crate) fn user_router() -> Router {
     let protected_routes = Router::new()
         .route("/send_answer", post(send_answer))
         .route("/current_question", get(current_question))
+        .route("/inventory", get(inventory))
         .route_layer(from_fn(require_key));
 
     Router::new()
