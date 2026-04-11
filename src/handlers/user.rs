@@ -2,6 +2,7 @@ use crate::storage;
 use crate::QUESTIONS;
 use anyhow::Result;
 use axum::http::{HeaderMap, StatusCode};
+use axum::Json;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -15,7 +16,7 @@ pub(crate) async fn can_start() -> Result<String, StatusCode> {
     Ok(false.to_string())
 }
 
-pub(crate) async fn start() -> Result<String, StatusCode> {
+pub(crate) async fn start() -> Result<Json<String>, StatusCode> {
     let current = storage::read(|state| state.session_id.clone());
 
     if !current.is_empty() {
@@ -29,7 +30,7 @@ pub(crate) async fn start() -> Result<String, StatusCode> {
         state.question_number = 0;
     });
 
-    Ok(uuid)
+    Ok(Json::from(uuid))
 }
 
 pub(crate) async fn send_answer(
