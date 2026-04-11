@@ -18,7 +18,7 @@ pub(crate) async fn questions() -> Result<Json<&'static Vec<QA>>, StatusCode> {
     Ok(Json(QUESTIONS.get().unwrap()))
 }
 
-pub(crate) async fn current_question() -> Result<String, StatusCode> {
+pub(crate) async fn current_question() -> Result<Json<usize>, StatusCode> {
     let current = storage::read(|state| state.question_number);
-    Ok(current.to_string())
+    Ok(Json::from(current))
 }

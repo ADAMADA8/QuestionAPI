@@ -6,14 +6,9 @@ use axum::Json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-pub(crate) async fn can_start() -> Result<String, StatusCode> {
+pub(crate) async fn can_start() -> Result<Json<bool>, StatusCode> {
     let uuid = storage::read(|state| state.session_id.clone());
-
-    if uuid.is_empty() {
-        return Ok(true.to_string());
-    }
-
-    Ok(false.to_string())
+    Ok(Json::from(uuid.is_empty()))
 }
 
 pub(crate) async fn start() -> Result<Json<String>, StatusCode> {
@@ -39,16 +34,16 @@ pub(crate) async fn current_question() -> Result<Json<&'static str>, StatusCode>
     Ok(Json::from(current))
 }
 
-pub(crate) async fn send_answer(body: String) -> Result<&'static str, StatusCode> {
+pub(crate) async fn send_answer(body: String) -> Result<Json<bool>, StatusCode> {
     let current = storage::read(|state| state.question_number);
 
     let questions = QUESTIONS.get().unwrap();
     let question = questions.get(current).ok_or(StatusCode::NOT_FOUND)?;
 
     if question.answer != body {
-        return Ok("false");
+        return Ok(Json::from(false));
     }
 
     storage::write(|state| state.question_number = current + 1);
-    Ok("true")
+    Ok(Json::from(true))
 }
