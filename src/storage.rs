@@ -25,6 +25,8 @@ static ITEMS: OnceLock<Vec<Item>> = OnceLock::new();
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub(crate) struct SessionState {
     pub session_id: Arc<str>,
+    #[serde(default)]
+    pub pin_code: Arc<str>,
     pub question_number: usize,
     #[serde(default)]
     pub inventory_ids: Vec<usize>,

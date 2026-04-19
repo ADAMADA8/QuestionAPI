@@ -23,7 +23,7 @@ async fn require_key(
     let key = Uuid::parse_str(&key).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let uuid = storage::read(|state| state.session_id.clone());
-    let uuid = Uuid::parse_str(&uuid).unwrap();
+    let uuid = Uuid::parse_str(&uuid).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     if key != uuid {
         return Err(StatusCode::UNAUTHORIZED);
@@ -41,6 +41,6 @@ pub(crate) fn user_router() -> Router {
 
     Router::new()
         .route("/can_start", get(can_start))
-        .route("/start", get(start))
+        .route("/start", post(start))
         .merge(protected_routes)
 }

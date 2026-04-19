@@ -3,16 +3,19 @@ use anyhow::Result;
 use axum::http::StatusCode;
 use axum::Json;
 use std::sync::Arc;
-use tokio::fs;
+use uuid::Uuid;
 
-pub(crate) async fn reset_session() -> Result<StatusCode, StatusCode> {
-    fs::write("session.txt", b"").await.unwrap();
+pub(crate) async fn reset_session() -> Result<Json<String>, StatusCode> {
+    let pin = format!("{:06}", Uuid::new_v4().as_u128() % 1_000_000);
+
     storage::write(|state| {
         state.session_id = Arc::from("");
+        state.pin_code = Arc::from(pin.as_str());
         state.question_number = 0;
         state.inventory_ids.clear();
     });
-    Ok(StatusCode::OK)
+
+    Ok(Json(pin))
 }
 
 pub(crate) async fn add_inventory_item(body: String) -> Result<StatusCode, StatusCode> {

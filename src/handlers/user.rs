@@ -10,7 +10,17 @@ pub(crate) async fn can_start() -> Result<Json<bool>, StatusCode> {
     Ok(Json::from(uuid.is_empty()))
 }
 
-pub(crate) async fn start() -> Result<Json<String>, StatusCode> {
+pub(crate) async fn start(body: Json<String>) -> Result<Json<String>, StatusCode> {
+    let pin = body.trim();
+    if pin.len() != 6 || !pin.chars().all(|ch| ch.is_ascii_digit()) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let expected_pin = storage::read(|state| state.pin_code.clone());
+    if expected_pin.is_empty() || expected_pin.as_ref() != pin {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
     let current = storage::read(|state| state.session_id.clone());
 
     if !current.is_empty() {
