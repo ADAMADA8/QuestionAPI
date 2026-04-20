@@ -38,10 +38,15 @@ pub(crate) async fn start(body: Json<String>) -> Result<Json<String>, StatusCode
     Ok(Json::from(uuid))
 }
 
-pub(crate) async fn current_question() -> Result<Json<&'static str>, StatusCode> {
+pub(crate) async fn current_question() -> Result<Json<String>, StatusCode> {
     let current = storage::read(|state| state.question_number);
-    let current = &*storage::questions().get(current).unwrap().question;
-    Ok(Json::from(current))
+    let question = storage::questions()
+        .get(current)
+        .ok_or(StatusCode::NOT_FOUND)?
+        .question
+        .clone();
+
+    Ok(Json::from(question))
 }
 
 pub(crate) async fn send_answer(body: String) -> Result<Json<bool>, StatusCode> {
