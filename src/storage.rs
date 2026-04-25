@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::result::Result as StdResult;
 use std::sync::{Arc, LazyLock, OnceLock, RwLock};
 use tokio::fs;
 
@@ -21,6 +22,13 @@ pub(crate) struct Item {
 
 static QUESTIONS: OnceLock<Vec<QA>> = OnceLock::new();
 static ITEMS: OnceLock<Vec<Item>> = OnceLock::new();
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StartSessionError {
+    Unauthorized,
+    AlreadyStarted,
+    Internal,
+}
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub(crate) struct SessionState {
@@ -44,22 +52,56 @@ pub(crate) fn read<F, R>(f: F) -> R
 where
     F: FnOnce(&SessionState) -> R,
 {
-    f(&STATE.read().unwrap())
+    let guard = match STATE.read() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    f(&guard)
 }
 
-pub(crate) fn write<F>(f: F)
+pub(crate) fn write<F>(f: F) -> Result<()>
 where
     F: FnOnce(&mut SessionState),
 {
-    f(&mut STATE.write().unwrap());
-    persist();
+    let mut guard = match STATE.write() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+
+    f(&mut guard);
+    persist_locked(&guard)
 }
 
-fn persist() {
-    let data = serde_json::to_vec(&*STATE.read().unwrap()).unwrap();
+fn persist_locked(state: &SessionState) -> Result<()> {
+    let data = serde_json::to_vec(state).with_context(|| "Не удалось сериализовать state.json")?;
     let tmp = format!("{}.tmp", STATE_PATH);
-    std::fs::write(&tmp, data).unwrap();
-    std::fs::rename(&tmp, STATE_PATH).unwrap();
+
+    std::fs::write(&tmp, data).with_context(|| format!("Не удалось записать временный файл {tmp}"))?;
+    std::fs::rename(&tmp, STATE_PATH)
+        .with_context(|| format!("Не удалось заменить {STATE_PATH} временным файлом"))?;
+
+    Ok(())
+}
+
+pub(crate) fn start_session(pin: &str, session_id: &str) -> StdResult<(), StartSessionError> {
+    let mut guard = match STATE.write() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+
+    if guard.pin_code.is_empty() || guard.pin_code.as_ref() != pin {
+        return Err(StartSessionError::Unauthorized);
+    }
+
+    if !guard.session_id.is_empty() {
+        return Err(StartSessionError::AlreadyStarted);
+    }
+
+    guard.session_id = Arc::from(session_id);
+    guard.question_number = 0;
+    guard.inventory_ids.clear();
+
+    persist_locked(&guard).map_err(|_| StartSessionError::Internal)
 }
 
 pub(crate) async fn init_questions() -> Result<usize> {

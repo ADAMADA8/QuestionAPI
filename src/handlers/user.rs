@@ -1,8 +1,8 @@
 use crate::storage;
+use crate::storage::StartSessionError;
 use anyhow::Result;
 use axum::http::StatusCode;
 use axum::Json;
-use std::sync::Arc;
 use uuid::Uuid;
 
 pub(crate) async fn can_start() -> Result<Json<bool>, StatusCode> {
@@ -16,24 +16,14 @@ pub(crate) async fn start(body: Json<String>) -> Result<Json<String>, StatusCode
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let expected_pin = storage::read(|state| state.pin_code.clone());
-    if expected_pin.is_empty() || expected_pin.as_ref() != pin {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    let current = storage::read(|state| state.session_id.clone());
-
-    if !current.is_empty() {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
     let uuid = Uuid::new_v4().to_string();
 
-    storage::write(|state| {
-        state.session_id = Arc::from(uuid.as_str());
-        state.question_number = 0;
-        state.inventory_ids.clear();
-    });
+    match storage::start_session(pin, &uuid) {
+        Ok(()) => {}
+        Err(StartSessionError::Unauthorized) => return Err(StatusCode::UNAUTHORIZED),
+        Err(StartSessionError::AlreadyStarted) => return Err(StatusCode::BAD_REQUEST),
+        Err(StartSessionError::Internal) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 
     Ok(Json::from(uuid))
 }
@@ -59,7 +49,8 @@ pub(crate) async fn send_answer(body: String) -> Result<Json<bool>, StatusCode> 
         return Ok(Json::from(false));
     }
 
-    storage::write(|state| state.question_number = current + 1);
+    storage::write(|state| state.question_number = current + 1)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json::from(true))
 }
 

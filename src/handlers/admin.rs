@@ -13,7 +13,8 @@ pub(crate) async fn reset_session() -> Result<Json<String>, StatusCode> {
         state.pin_code = Arc::from(pin.as_str());
         state.question_number = 0;
         state.inventory_ids.clear();
-    });
+    })
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(pin))
 }
@@ -32,7 +33,8 @@ pub(crate) async fn add_inventory_item(body: String) -> Result<StatusCode, Statu
         return Err(StatusCode::NOT_FOUND);
     }
 
-    storage::write(|state| state.inventory_ids.push(id));
+    storage::write(|state| state.inventory_ids.push(id))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(StatusCode::OK)
 }
 
