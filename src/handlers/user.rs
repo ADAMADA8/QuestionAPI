@@ -57,4 +57,3 @@ pub(crate) async fn send_answer(body: String) -> Result<Json<bool>, StatusCode> 
 pub(crate) async fn inventory() -> Result<Json<Vec<storage::Item>>, StatusCode> {
     Ok(Json(storage::inventory()))
 }
-

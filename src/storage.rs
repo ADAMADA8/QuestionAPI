@@ -76,7 +76,8 @@ fn persist_locked(state: &SessionState) -> Result<()> {
     let data = serde_json::to_vec(state).with_context(|| "Не удалось сериализовать state.json")?;
     let tmp = format!("{}.tmp", STATE_PATH);
 
-    std::fs::write(&tmp, data).with_context(|| format!("Не удалось записать временный файл {tmp}"))?;
+    std::fs::write(&tmp, data)
+        .with_context(|| format!("Не удалось записать временный файл {tmp}"))?;
     std::fs::rename(&tmp, STATE_PATH)
         .with_context(|| format!("Не удалось заменить {STATE_PATH} временным файлом"))?;
 
@@ -113,7 +114,9 @@ pub(crate) async fn init_questions() -> Result<usize> {
     .await?;
 
     let count = parsed.len();
-    QUESTIONS.set(parsed).expect("QUESTIONS уже инициализирован");
+    QUESTIONS
+        .set(parsed)
+        .map_err(|_| anyhow::anyhow!("QUESTIONS уже инициализирован"))?;
     Ok(count)
 }
 
@@ -126,16 +129,22 @@ pub(crate) async fn init_items() -> Result<usize> {
     .await?;
 
     let count = parsed.len();
-    ITEMS.set(parsed).expect("ITEMS уже инициализирован");
+    ITEMS
+        .set(parsed)
+        .map_err(|_| anyhow::anyhow!("ITEMS уже инициализирован"))?;
     Ok(count)
 }
 
 pub(crate) fn questions() -> &'static Vec<QA> {
-    QUESTIONS.get().expect("QUESTIONS не инициализирован")
+    QUESTIONS
+        .get()
+        .expect("QUESTIONS не инициализирован. Ошибка запуска сервера")
 }
 
 pub(crate) fn items() -> &'static Vec<Item> {
-    ITEMS.get().expect("ITEMS не инициализирован")
+    ITEMS
+        .get()
+        .expect("ITEMS не инициализирован. Ошибка запуска сервера")
 }
 
 pub(crate) fn inventory() -> Vec<Item> {
@@ -156,9 +165,7 @@ where
         .await
         .with_context(|| read_ctx.to_string())?;
 
-    let parsed = serde_saphyr::from_str(content.as_str())
-        .with_context(|| parse_ctx.to_string())?;
+    let parsed = serde_saphyr::from_str(content.as_str()).with_context(|| parse_ctx.to_string())?;
 
     Ok(parsed)
 }
-
